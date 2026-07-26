@@ -1,5 +1,17 @@
-with total as (
-    select fecha, valor as total_prestamos
+/*
+Crédito al sector privado no financiero.
+
+Fuentes:
+  - total_mn_y_me (ID 26): préstamos en moneda nacional Y extranjera.
+  - Componentes (IDs 110-116): solo moneda nacional.
+  - La diferencia (~25%) corresponde a préstamos en moneda extranjera (USD)
+    que el BCRA no publica desglosados por tipo en esta API.
+
+Metodología verificada en: api.bcra.gob.ar/estadisticas/v4.0/metodologia/{id}
+*/
+
+with total_mn_y_me as (
+    select fecha, valor as total_mn_y_me
     from {{ ref('stg_bcra_variables') }}
     where nombre_variable = 'prestamos_sector_privado'
 ),
@@ -30,7 +42,14 @@ desglose as (
 joined as (
     select
         d.fecha,
-        t.total_prestamos,
+        t.total_mn_y_me,
+        d.adelantos_cuenta + d.documentos + d.hipotecarios
+            + d.prendarios + d.personales + d.tarjeta_credito
+            + d.otros                                                   as total_mn,
+        t.total_mn_y_me - (
+            d.adelantos_cuenta + d.documentos + d.hipotecarios
+            + d.prendarios + d.personales + d.tarjeta_credito + d.otros
+        )                                                               as estimado_me,
         d.adelantos_cuenta,
         d.documentos,
         d.hipotecarios,
@@ -38,15 +57,21 @@ joined as (
         d.personales,
         d.tarjeta_credito,
         d.otros,
-        round(d.hipotecarios   / t.total_prestamos * 100, 2) as pct_hipotecarios,
-        round(d.personales     / t.total_prestamos * 100, 2) as pct_personales,
-        round(d.tarjeta_credito / t.total_prestamos * 100, 2) as pct_tarjeta_credito,
+        round(d.hipotecarios    / t.total_mn_y_me * 100, 2)            as pct_hipotecarios,
+        round(d.personales      / t.total_mn_y_me * 100, 2)            as pct_personales,
+        round(d.tarjeta_credito / t.total_mn_y_me * 100, 2)            as pct_tarjeta_credito,
         round(
-            (t.total_prestamos - lag(t.total_prestamos, 30) over (order by d.fecha))
-            / lag(t.total_prestamos, 30) over (order by d.fecha) * 100
-        , 2) as var_total_30d_pct
+            (t.total_mn_y_me - (
+                d.adelantos_cuenta + d.documentos + d.hipotecarios
+                + d.prendarios + d.personales + d.tarjeta_credito + d.otros
+            )) / t.total_mn_y_me * 100
+        , 2)                                                            as pct_estimado_me,
+        round(
+            (t.total_mn_y_me - lag(t.total_mn_y_me, 30) over (order by d.fecha))
+            / lag(t.total_mn_y_me, 30) over (order by d.fecha) * 100
+        , 2)                                                            as var_total_30d_pct
     from desglose d
-    inner join total t on d.fecha = t.fecha
+    inner join total_mn_y_me t on d.fecha = t.fecha
 )
 
 select * from joined

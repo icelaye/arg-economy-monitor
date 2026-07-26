@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: stg_bcra_variables
+    description: "Variables monetarias del BCRA normalizadas"
+    columns:
+      - name: nombre_variable
+        description: "Nombre de la variable económica"
+        tests:
+          - not_null
+          - accepted_values:
+              config:
+                severity: warn
+              values:
+                - reservas_internacionales
+                - tipo_cambio_minorista
+                - tipo_cambio_mayorista
+                - tasa_badlar
+                - tasa_politica_monetaria
+                - tasa_prestamos_personales
+                - base_monetaria
+                - prestamos_sector_privado
+                - expectativas_inflacion_rem
+                - m2
+                - prestamos_adelantos_cuenta
+                - prestamos_documentos
+                - prestamos_hipotecarios
+                - prestamos_prendarios
+                - prestamos_personales
+                - prestamos_tarjeta_credito
+                - prestamos_otros
+                - dolar_blue
+
+      - name: fecha
+        description: "Fecha del dato"
+        tests:
+          - not_null
+
+      - name: valor
+        description: "Valor de la variable para esa fecha"
+        tests:
+          - not_null

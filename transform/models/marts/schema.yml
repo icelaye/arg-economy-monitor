@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: mart_brecha_cambiaria
+    description: "Brecha entre tipo de cambio oficial y blue"
+    columns:
+      - name: fecha
+        tests:
+          - not_null
+          - unique
+      - name: tipo_cambio_oficial
+        tests:
+          - not_null
+      - name: tipo_cambio_blue
+        tests:
+          - not_null
+      - name: brecha_pct
+        tests:
+          - not_null
+
+  - name: mart_agregados_monetarios
+    description: "Base monetaria y M2 con variaciones"
+    columns:
+      - name: fecha
+        tests:
+          - not_null
+          - unique
+      - name: base_monetaria
+        tests:
+          - not_null
+      - name: m2
+        tests:
+          - not_null
+      - name: multiplicador_monetario
+        tests:
+          - not_null
+
+  - name: mart_credito_sector_privado
+    description: >
+      Crédito al sector privado. total_mn_y_me incluye moneda extranjera,
+      los componentes son solo moneda nacional. La diferencia (~25%) es crédito en USD.
+    columns:
+      - name: fecha
+        tests:
+          - not_null
+          - unique
+      - name: total_mn_y_me
+        tests:
+          - not_null
+      - name: total_mn
+        tests:
+          - not_null
+      - name: estimado_me
+        tests:
+          - not_null
