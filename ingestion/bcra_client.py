@@ -17,6 +17,13 @@ VARIABLES = {
     "prestamos_sector_privado": 26,
     "expectativas_inflacion_rem": 29,
     "m2": 109,
+    "prestamos_adelantos_cuenta": 110,
+    "prestamos_documentos": 111,
+    "prestamos_hipotecarios": 112,
+    "prestamos_prendarios": 113,
+    "prestamos_personales": 114,
+    "prestamos_tarjeta_credito": 115,
+    "prestamos_otros": 116,
 }
 
 
