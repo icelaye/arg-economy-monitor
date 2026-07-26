@@ -10,8 +10,13 @@ BASE_URL = "https://api.bcra.gob.ar/estadisticas/v4.0"
 VARIABLES = {
     "reservas_internacionales": 1,
     "tipo_cambio_minorista": 4,
-    "tasa_politica_monetaria": 7,
+    "tipo_cambio_mayorista": 5,
+    "tasa_badlar": 7,
+    "tasa_prestamos_personales": 14,
     "base_monetaria": 15,
+    "prestamos_sector_privado": 26,
+    "expectativas_inflacion_rem": 29,
+    "m2": 109,
 }
 
 
