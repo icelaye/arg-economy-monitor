@@ -1,17 +1,26 @@
-from ingestion.bcra_client import get_all_variables, get_dolar_blue
+import argparse
+from ingestion.bcra_client import load_historical, load_incremental
 from ingestion.database import get_connection, init_tables, upsert_variable, load_variable
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Pipeline de ingesta BCRA")
+    parser.add_argument(
+        "--mode",
+        choices=["historical", "incremental"],
+        default="incremental",
+        help="historical: carga 5 años (solo primera vez). incremental: carga últimos 45 días (uso diario)."
+    )
+    args = parser.parse_args()
+
     print("Conectando a DuckDB...")
     conn = get_connection()
     init_tables(conn)
 
-    print("\nObteniendo datos del BCRA...")
-    datos = get_all_variables()
-
-    print("\nObteniendo dólar blue...")
-    datos["dolar_blue"] = get_dolar_blue()
+    if args.mode == "historical":
+        datos = load_historical()
+    else:
+        datos = load_incremental()
 
     print("\nPersistiendo en DuckDB...")
     for nombre, df in datos.items():

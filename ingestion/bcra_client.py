@@ -29,7 +29,7 @@ VARIABLES = {
 
 def get_variable(id_variable: int, dias: int = 365) -> pd.DataFrame:
     """
-    Obtiene una serie temporal de una variable del BCRA.
+    Obtiene una serie temporal de una variable del BCRA con paginación.
 
     Args:
         id_variable: ID de la variable según la API del BCRA
@@ -42,33 +42,37 @@ def get_variable(id_variable: int, dias: int = 365) -> pd.DataFrame:
     fecha_hasta = datetime.today().strftime("%Y-%m-%d")
 
     url = f"{BASE_URL}/monetarias/{id_variable}"
-    params = {"desde": fecha_desde, "hasta": fecha_hasta}
+    todos = []
+    offset = 0
+    limit = 1000
 
-    response = requests.get(url, params=params, timeout=10, verify=False)
-    response.raise_for_status()
+    while True:
+        params = {
+            "desde": fecha_desde,
+            "hasta": fecha_hasta,
+            "offset": offset,
+            "limit": limit,
+        }
 
-    data = response.json()
-    df = pd.DataFrame(data["results"][0]["detalle"])
+        response = requests.get(url, params=params, timeout=10, verify=False)
+        response.raise_for_status()
+
+        data = response.json()
+        detalle = data["results"][0]["detalle"]
+        todos.extend(detalle)
+
+        total = data["metadata"]["resultset"]["count"]
+        offset += limit
+
+        if offset >= total:
+            break
+
+    df = pd.DataFrame(todos)
     df["fecha"] = pd.to_datetime(df["fecha"])
     df = df.sort_values("fecha").reset_index(drop=True)
 
     return df
 
-
-def get_all_variables() -> dict[str, pd.DataFrame]:
-    """
-    Obtiene todas las variables definidas en VARIABLES.
-
-    Returns:
-        Diccionario con nombre de variable -> DataFrame
-    """
-    resultados = {}
-
-    for nombre, id_var in VARIABLES.items():
-        print(f"Obteniendo {nombre}...")
-        resultados[nombre] = get_variable(id_var)
-
-    return resultados
 
 def get_dolar_blue(dias: int = 365) -> pd.DataFrame:
     """
@@ -98,14 +102,47 @@ def get_dolar_blue(dias: int = 365) -> pd.DataFrame:
 
     return df
 
-if __name__ == "__main__":
-    datos = get_all_variables()
 
-    for nombre, df in datos.items():
-        print(f"\n{nombre}: {len(df)} registros")
-        print(df.tail(3))
+def load_historical(dias: int = 1825) -> dict[str, pd.DataFrame]:
+    """
+    Carga histórica inicial. Correr solo una vez para poblar la base.
 
-    print("\nObteniendo dólar blue...")
-    df_blue = get_dolar_blue()
-    print(f"dolar_blue: {len(df_blue)} registros")
-    print(df_blue.tail(3))
+    Args:
+        dias: años hacia atrás a consultar (default: 5 años)
+
+    Returns:
+        Diccionario con nombre de variable -> DataFrame
+    """
+    print(f"Carga histórica: últimos {dias} días ({dias // 365} años aprox)")
+    resultados = {}
+    for nombre, id_var in VARIABLES.items():
+        print(f"  Obteniendo {nombre}...")
+        resultados[nombre] = get_variable(id_var, dias=dias)
+
+    print("  Obteniendo dólar blue...")
+    resultados["dolar_blue"] = get_dolar_blue(dias=dias)
+
+    return resultados
+
+
+def load_incremental(dias: int = 45) -> dict[str, pd.DataFrame]:
+    """
+    Carga incremental diaria. Trae los últimos N días con overlap
+    para capturar datos publicados con retraso por el BCRA.
+
+    Args:
+        dias: ventana de días a traer (default: 45 para tener overlap)
+
+    Returns:
+        Diccionario con nombre de variable -> DataFrame
+    """
+    print(f"Carga incremental: últimos {dias} días")
+    resultados = {}
+    for nombre, id_var in VARIABLES.items():
+        print(f"  Obteniendo {nombre}...")
+        resultados[nombre] = get_variable(id_var, dias=dias)
+
+    print("  Obteniendo dólar blue...")
+    resultados["dolar_blue"] = get_dolar_blue(dias=dias)
+
+    return resultados
